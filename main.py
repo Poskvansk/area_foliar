@@ -1,15 +1,16 @@
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 
 import time
 
-
-
 def show(img):
 
-    cv2.imshow("image", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow("image", img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+    plt.imshow(img, cmap='gray', vmin=0, vmax=255); plt.show()
 
 def binarization(img):
 
@@ -30,41 +31,16 @@ def imfill(img):
 
     return fill
 
-def fill_holes(img):
-    
-    negative = cv2.bitwise_not(img)
-    aux = negative.copy()
-
-    cv2.floodFill(aux, None, (0,0), 0)
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
-    aux = cv2.morphologyEx(aux, cv2.MORPH_DILATE, kernel, iterations = 3)
-    # show(aux)
-
-    # negativo + aux = imagem com buracos preenchidos
-    filled = cv2.bitwise_or(img, aux)
-
-    # fechamento para quaisquer pequenos buracos que tiverem sobrado
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4,4))
-    filled = cv2.morphologyEx(filled, cv2.MORPH_CLOSE, kernel, iterations=3)
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
-    filled = cv2.morphologyEx(filled, cv2.MORPH_OPEN, kernel, iterations=3)
-
-    # comp = np.hstack((img, filled))
-    # show(comp)
-
-    return filled
 
 def find_square(img):
 
     contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
     for contour in contours:
-        approx = cv2.approxPolyDP(contour, 0.01 * cv2.arcLength(contour, True), True)
+        approx = cv2.approxPolyDP(contour, 0.02 * cv2.arcLength(contour, True), True)
         
         if(cv2.contourArea(contour) > 1000):
-            x = approx.ravel()[0]
+            x = approx.ravel()[0]   
             y = approx.ravel()[1]
 
             if len(approx) == 4:
@@ -72,56 +48,61 @@ def find_square(img):
                 x,y,w,h = cv2.boundingRect(contour)
                 # print(x, y, w, h)
 
-                ROI = img[y-5:y+h+5, x-5:x+w+5]
-                # show(ROI)
+                square = img[y-5:y+h+5, x-5:x+w+5]
+                # show(square)
 
-    return ROI
+    return square
 
 def get_pixel_area(square):
 
-    square_area = 81
+    square_area = 25 # cm quadrado
 
     arr = square.flatten()
 
     total_pixels = np.sum(arr)
     total_pixels /= 255
-    # print(total_pixels)
 
     pixel_area = square_area / total_pixels
-    # print(pixel_area)
 
-    return pixel_area
+    return pixel_area, total_pixels
 
-def get_leaf_area(img, pixel_area):
+def get_leaf_area(img, pixel_area, square):
 
     arr = img.flatten()
     total_white = np.sum(arr)
 
+    total_white /= 255
+    total_white -= square
+    
     area = total_white * pixel_area
 
     return area
 
 def main():
 
-    img = cv2.imread("images/square.jpg")
-    # show(img)
-    
+    # for i in range(10):
+        # adr = "images2/tomate{i}.jpeg".format(i = i+1)
+        # print("tomate", i+1)
+    img = cv2.imread("images2/tomate7.jpeg")
+    plt.imshow(img[:,:,::-1]); plt.show()
+
     binary = binarization(img)
-    # show(binary)
+    show(binary)
     
-    # fill = imfill(binary)
-    fill = fill_holes(binary)
+    fill = imfill(binary)
+    # fill = fill_holes(binary)
+    # show(fill)
 
-    square = find_square(binary)
-    # show(square)
+    square = find_square(fill)
+    show(square)
 
-    pixel_area = get_pixel_area(square)
+    pixel_area, total_square = get_pixel_area(square)
     # print(pixel_area)
+    # print(total_square)
 
-    leaf_area = get_leaf_area(fill, pixel_area)
-    print(leaf_area)
+    leaf_area = get_leaf_area(fill, pixel_area, total_square)
+    print(leaf_area, " cm²")
 
-    # compare = np.hstack((fill, test))
-    # show(compare)
-    
+    print("===============================================")
+        
 main()
