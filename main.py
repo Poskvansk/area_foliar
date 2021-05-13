@@ -2,16 +2,10 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-import time
-
 def show(img):
-
-    # cv2.imshow("image", img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
     plt.imshow(img, cmap='gray', vmin=0, vmax=255); plt.show()
 
+#binariza a imagem
 def binarization(img):
 
     binary = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -20,18 +14,15 @@ def binarization(img):
 
     return binary
 
-# def remove_branches(img):
-#     return
-
+#preenche pequenos buracos dentro das figuras
 def imfill(img):
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
-
-    fill = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel, iterations = 5)
+    fill = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
 
     return fill
 
-
+# encontra o quadrado na imagem
 def find_square(img):
 
     contours, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -44,21 +35,23 @@ def find_square(img):
             y = approx.ravel()[1]
 
             if len(approx) == 4:
-                # cv2.drawContours(draw, [approx], 0, (0,0,255), 3)
-                x,y,w,h = cv2.boundingRect(contour)
-                # print(x, y, w, h)
+                x, y, w, h = cv2.boundingRect(contour)
 
                 square = img[y-5:y+h+5, x-5:x+w+5]
                 # show(square)
 
     return square
 
+# encontra a area do pixel
 def get_pixel_area(square):
 
+    # area conhecida
     square_area = 25 # cm quadrado
 
+    # transforma array 2-D  em um array unidimensional
     arr = square.flatten()
 
+    # imagem binaria, logo, soma de todos os valores / 255 = total de pixeis
     total_pixels = np.sum(arr)
     total_pixels /= 255
 
@@ -68,10 +61,15 @@ def get_pixel_area(square):
 
 def get_leaf_area(img, pixel_area, square):
 
-    arr = img.flatten()
-    total_white = np.sum(arr)
 
+    # transforma array 2-D em um array unidimensional
+    arr = img.flatten()
+
+    # imagem binaria, logo, soma de todos os valores / 255 = total de pixeis
+    total_white = np.sum(arr)
     total_white /= 255
+    
+    #subtrai os pixeis do elemento de referencia
     total_white -= square
     
     area = total_white * pixel_area
@@ -80,29 +78,24 @@ def get_leaf_area(img, pixel_area, square):
 
 def main():
 
-    # for i in range(10):
-        # adr = "images2/tomate{i}.jpeg".format(i = i+1)
-        # print("tomate", i+1)
-    img = cv2.imread("images2/tomate7.jpeg")
-    plt.imshow(img[:,:,::-1]); plt.show()
 
-    binary = binarization(img)
-    show(binary)
-    
-    fill = imfill(binary)
-    # fill = fill_holes(binary)
-    # show(fill)
+    for i in range(10):
 
-    square = find_square(fill)
-    show(square)
+        img = cv2.imread("images/tomate{i}.jpeg".format(i=i+1))
+        # plt.imshow(img[:,:,::-1]); plt.show()
 
-    pixel_area, total_square = get_pixel_area(square)
-    # print(pixel_area)
-    # print(total_square)
-
-    leaf_area = get_leaf_area(fill, pixel_area, total_square)
-    print(leaf_area, " cm²")
-
-    print("===============================================")
+        binary = binarization(img)
+        # show(binary)
         
+        fill = imfill(binary)
+        # show(fill)
+
+        square = find_square(fill)
+        # show(square)
+
+        pixel_area, total_square = get_pixel_area(square)
+        
+        leaf_area = get_leaf_area(fill, pixel_area, total_square)
+        print(round(leaf_area, 2), " cm²")
+
 main()
